@@ -13,7 +13,7 @@ export default function SidebarNotes() {
                     </Link>
                 </li>
                 {tags.map((tag) =>
-                    <li className={css.menuItem}>
+                    <li className={css.menuItem} key={tag}>
                         <Link href={`/notes/filter/${tag}`} className={css.menuLink}>
                             {tag}
                         </Link>

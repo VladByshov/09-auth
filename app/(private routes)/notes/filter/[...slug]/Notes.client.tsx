@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { fetchNotes } from "@/lib/api/api";
 import NoteList from "@/components/NoteList/NoteList";
 import css from "./NotesPage.module.css";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
@@ -11,6 +10,7 @@ import { useDebouncedCallback } from "use-debounce";
 import NoNotes from "@/components/NoNotes/NoNotes";
 import {NoteTag} from "@/types/note";
 import Link from "next/link";
+import {fetchNotes} from "@/lib/api/clientApi";
 
 interface NoteCLientProps {
     tag?: NoteTag;
@@ -22,7 +22,7 @@ export default function NotesClient({ tag }:NoteCLientProps) {
 
     const { data, error, isError } = useQuery({
         queryKey: ["notes", page, searchQuery, tag],
-        queryFn: () => fetchNotes({ page, perPage: 12, search: searchQuery, tag:tag }),
+        queryFn: () => fetchNotes( searchQuery, page, tag ?? "" ),
         placeholderData: keepPreviousData,
         refetchOnMount: false,
     });

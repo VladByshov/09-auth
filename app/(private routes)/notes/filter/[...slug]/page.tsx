@@ -3,10 +3,10 @@ import {
     HydrationBoundary,
     dehydrate,
 } from "@tanstack/react-query";
-import { fetchNotes} from "@/lib/api/api";
-import NotesClient from "@/app/notes/filter/[...slug]/Notes.client";
 import { NoteTag} from "@/types/note";
 import {Metadata} from "next";
+import {fetchNotes} from "@/lib/api/clientApi";
+import NotesClient from "@/app/(private routes)/notes/filter/[...slug]/Notes.client";
 
 interface SlugProps {
     params: Promise<{ slug: string[] }>,
@@ -50,7 +50,7 @@ export default async function NotesPage({params}:SlugProps) {
 
     await queryClient.prefetchQuery({
         queryKey: ["notes", 1, "", chosenTag],
-        queryFn: () => fetchNotes({page:1, perPage: 12, search:"", tag: chosenTag}),
+        queryFn: () => fetchNotes("", 1, chosenTag ?? ""),
     });
 
     return (
