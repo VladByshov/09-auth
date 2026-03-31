@@ -3,6 +3,7 @@ import { nextServer } from "./api";
 import { User } from "@/types/user";
 import { FetchNotesResponse } from "./clientApi";
 import { Note } from "@/types/note";
+import {AxiosResponse} from "axios";
 
 export interface SessionResponse {
   headers: {
@@ -53,7 +54,7 @@ export async function getMe(): Promise<User> {
 
 export async function checkServerSession(): Promise<SessionResponse> {
   const cookieStore = await cookies();
-  const res = await nextServer.get("/auth/session", {
+  const res:AxiosResponse<SessionResponse> = await nextServer.get<SessionResponse>("/auth/session", {
     headers: {
       Cookie: cookieStore.toString(),
     },
