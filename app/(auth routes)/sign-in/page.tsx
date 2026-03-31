@@ -35,7 +35,7 @@ export default function SignIn() {
 
     return (
         <main className={css.mainContent}>
-            <form className={css.form}>
+            <form className={css.form} action={handleSubmit}>
                 <h1 className={css.formTitle}>Sign in</h1>
 
                 <div className={css.formGroup}>
@@ -64,7 +64,6 @@ export default function SignIn() {
                     <button
                         type="submit"
                         className={css.submitButton}
-                        formAction={handleSubmit}
                         disabled={loginMutation.isPending}
                     >
                         Log in
