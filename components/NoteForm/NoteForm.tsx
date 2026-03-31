@@ -1,164 +1,140 @@
 "use client";
 
 import css from "./NoteForm.module.css";
-import { noteTags, type NoteTag } from "@/types/note";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import type { CreateNoteValues, NoteTag } from "../../types/note";
+import { useRouter } from "next/navigation";
 import * as Yup from "yup";
-import {useId, useState} from "react";
-import {useRouter} from "next/navigation";
-import {useNoteDraft} from "@/lib/store/noteStore";
-import {createNote} from "@/lib/api/clientApi";
+import { useState } from "react";
+import { useNoteDraftStore } from "@/lib/store/noteStore";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { createNote } from "@/lib/api/clientApi";
 
-interface NoteFormValues {
-    title: string;
-    content: string;
-    tag: NoteTag;
-}
-
-type NoteFormErrors = Partial<Record<keyof NoteFormValues, string>>;
-
-const schema = Yup.object({
-    title: Yup.string()
-        .min(3, "Min 3 characters")
-        .max(50, "Max 50 characters")
-        .required("Title is required"),
-    content: Yup.string().max(500, "Max 500 characters"),
-    tag: Yup.mixed<NoteTag>()
-        .oneOf(noteTags, "Invalid tag")
-        .required("Tag is required"),
+const validationSchema = Yup.object().shape({
+  title: Yup.string()
+    .min(3, "Must be at least 3 characters")
+    .max(50, "Max symbols reached")
+    .required(),
+  content: Yup.string().max(500, "Max symbols reached").required(),
+  tag: Yup.string().required(),
 });
 
 export default function NoteForm() {
-    const queryClient = useQueryClient();
-    const router = useRouter();
-    const id = useId();
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const queryClient = useQueryClient();
+  const router = useRouter();
 
-    const [errors, setErrors] = useState<NoteFormErrors>({});
-    const { draft, updateDraft, clearDraft } = useNoteDraft();
+  const { draft, setDraft, clearDraft } = useNoteDraftStore();
 
-    const handleChange = (
-        event: React.ChangeEvent<
-            HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-        >,
-    ) => {
-        updateDraft({
-            ...draft,
-            [event.target.name]: event.target.value,
-        });
-    };
-
-    const { mutate, isPending } = useMutation({
-        mutationFn: createNote,
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["notes"] });
-            clearDraft();
-            router.back();
-        },
+  const handleChange = (
+    event: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >,
+  ) => {
+    setDraft({
+      ...draft,
+      [event.target.name]: event.target.value,
     });
+  };
 
-    const handleCancel = () => router.back();
+  const mutation = useMutation({
+    mutationFn: (newNote: CreateNoteValues) => createNote(newNote),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notes"] });
+      router.push("/notes/filter/all");
+      clearDraft();
+    },
+  });
+  const handleMutation = (note: CreateNoteValues) => {
+    mutation.mutate(note);
+  };
 
-    const handleSubmit = async (formData: FormData) => {
-        const rawTitle = formData.get("title");
-        const rawContent = formData.get("content");
-        const rawTag = formData.get("tag");
-
-        const values = {
-            title: typeof rawTitle === "string" ? rawTitle.trim() : "",
-            content: typeof rawContent === "string" ? rawContent.trim() : "",
-            tag: typeof rawTag === "string" ? rawTag : "",
-        };
-
-        try {
-            const validatedValues = await schema.validate(values, {
-                abortEarly: false,
-            });
-
-            setErrors({});
-
-            mutate({
-                title: validatedValues.title,
-                content: validatedValues.content ?? "",
-                tag: validatedValues.tag as NoteTag,
-            });
-        } catch (error) {
-            if (error instanceof Yup.ValidationError) {
-                const nextErrors: NoteFormErrors = {};
-
-                error.inner.forEach((err) => {
-                    if (err.path && !nextErrors[err.path as keyof NoteFormValues]) {
-                        nextErrors[err.path as keyof NoteFormValues] = err.message;
-                    }
-                });
-
-                setErrors(nextErrors);
-            }
-        }
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const value = {
+      title: formData.get("title") as string,
+      content: formData.get("content") as string,
+      tag: formData.get("tag") as NoteTag,
     };
 
-    return (
-        <form className={css.form}>
-            <div className={css.formGroup}>
-                <label htmlFor={`${id}-title`}>Title</label>
-                <input
-                    id={`${id}-title`}
-                    type="text"
-                    name="title"
-                    className={css.input}
-                    value={draft?.title}
-                    onChange={handleChange}
-                />
-                {errors.title && <span className={css.error}>{errors.title}</span>}
-            </div>
+    try {
+      await validationSchema.validate(value, { abortEarly: false });
 
-            <div className={css.formGroup}>
-                <label htmlFor={`${id}-content`}>Content</label>
-                <textarea
-                    id={`${id}-content`}
-                    name="content"
-                    rows={8}
-                    className={css.textarea}
-                    value={draft?.content}
-                    onChange={handleChange}
-                />
-                {errors.content && <span className={css.error}>{errors.content}</span>}
-            </div>
+      setErrors({});
+      handleMutation(value);
+    } catch (err) {
+      if (err instanceof Yup.ValidationError) {
+        const validationErrors: Record<string, string> = {};
+        err.inner.forEach((error) => {
+          if (error.path) validationErrors[error.path] = error.message;
+        });
+        setErrors(validationErrors);
+      }
+    }
+  };
 
-            <div className={css.formGroup}>
-                <label htmlFor={`${id}-tag`}>Tag</label>
-                <select
-                    id={`${id}-tag`}
-                    name="tag"
-                    className={css.select}
-                    value={draft?.tag}
-                    onChange={handleChange}
-                >
-                    {noteTags.map((tag) => (
-                        <option key={tag} value={tag}>
-                            {tag}
-                        </option>
-                    ))}
-                </select>
-                {errors.tag && <span className={css.error}>{errors.tag}</span>}
-            </div>
+  const handleCancel = () => {
+    router.back();
+  };
 
-            <div className={css.actions}>
-                <button
-                    type="button"
-                    className={css.cancelButton}
-                    onClick={handleCancel}
-                >
-                    Cancel
-                </button>
-                <button
-                    type="submit"
-                    className={css.submitButton}
-                    disabled={isPending}
-                    formAction={handleSubmit}
-                >
-                    {isPending ? "Creating..." : "Create note"}
-                </button>
-            </div>
-        </form>
-    );
+  return (
+    <form className={css.form} onSubmit={handleSubmit}>
+      <div className={css.formGroup}>
+        <label htmlFor="title">Title</label>
+        <input
+          id="title"
+          type="text"
+          name="title"
+          className={css.input}
+          value={draft?.title}
+          onChange={handleChange}
+        />
+        {errors.title && <span className={css.error}>{errors.title}</span>}
+      </div>
+
+      <div className={css.formGroup}>
+        <label htmlFor="content">Content</label>
+        <textarea
+          id="content"
+          name="content"
+          rows={8}
+          className={css.textarea}
+          value={draft?.content}
+          onChange={handleChange}
+        />
+        {errors.content && <span className={css.error}>{errors.content}</span>}
+      </div>
+
+      <div className={css.formGroup}>
+        <label htmlFor="tag">Tag</label>
+        <select
+          id="tag"
+          name="tag"
+          className={css.select}
+          value={draft?.tag}
+          onChange={handleChange}
+        >
+          <option value="Todo">Todo</option>
+          <option value="Work">Work</option>
+          <option value="Personal">Personal</option>
+          <option value="Meeting">Meeting</option>
+          <option value="Shopping">Shopping</option>
+        </select>
+        {errors.tag && <span className={css.errorText}>{errors.tag}</span>}
+      </div>
+
+      <div className={css.actions}>
+        <button
+          type="button"
+          className={css.cancelButton}
+          onClick={handleCancel}
+        >
+          Cancel
+        </button>
+        <button type="submit" className={css.submitButton} disabled={false}>
+          Create note
+        </button>
+      </div>
+    </form>
+  );
 }

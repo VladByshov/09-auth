@@ -1,103 +1,89 @@
-'use client'
+"use client";
+import Image from "next/image";
+import css from "./EditProfilePage.module.css";
+import { useAuthStore } from "@/lib/store/authStore";
+import { useRouter } from "next/navigation";
+import { updateMe } from "@/lib/api/clientApi";
+import { useState } from "react";
+import { ApiError } from "@/lib/api/api";
 
-import { useMutation, useQuery } from '@tanstack/react-query'
-import Image from 'next/image'
-import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
-import { getErrorMessage, getMe, updateMe } from '@/lib/api/clientApi'
-import { useAuthStore } from '@/lib/store/authStore'
-import css from './EditProfile.module.css'
+type UserForm = {
+  username: string;
+};
 
-export default function EditProfilePage() {
-    const router = useRouter()
-    const setUser = useAuthStore((state) => state.setUser)
-    const [username, setUsername] = useState('')
-    const [error, setError] = useState('')
+export default function EditPage() {
+  const [error, setError] = useState("");
+  const { user } = useAuthStore();
+  const router = useRouter();
+  const setUser = useAuthStore((state) => state.setUser);
 
-    const { data: user, isPending } = useQuery({
-        queryKey: ['me'],
-        queryFn: getMe,
-    })
-
-    const updateProfileMutation = useMutation({
-        mutationFn: updateMe,
-        onSuccess: (updatedUser) => {
-            setUser(updatedUser)
-            router.push('/profile')
-            router.refresh()
-        },
-        onError: (mutationError) => {
-            setError(getErrorMessage(mutationError))
-        },
-    })
-
-    useEffect(() => {
-        if (user) {
-            setUsername(user.username)
-        }
-    }, [user])
-
-    const handleSubmit = async (formData: FormData) => {
-        setError('')
-
-        await updateProfileMutation.mutateAsync({
-            username: String(formData.get('username') ?? '').trim(),
-            email: String(formData.get('username') ?? '').trim(),
-        })
+  const handleNameChange = async (formData: FormData) => {
+    try {
+      const formValues = Object.fromEntries(formData) as UserForm;
+      const res = await updateMe({
+        email: user?.email || "",
+        username: formValues.username,
+      });
+      if (res) {
+        setUser(res);
+        router.push("/profile");
+      } else {
+        setError("Invalid email or password");
+      }
+    } catch (error) {
+      setError(
+        (error as ApiError).response?.data?.error ??
+          (error as ApiError).message ??
+          "Oops... some error",
+      );
     }
+  };
 
-    if (isPending || !user) {
-        return <p>Loading, please wait...</p>
-    }
+  const handleCancel = () => {
+    router.push("/profile");
+  };
+  return (
+    <main className={css.mainContent}>
+      <div className={css.profileCard}>
+        <h1 className={css.formTitle}>Edit Profile</h1>
 
-    return (
-        <main className={css.mainContent}>
-            <div className={css.profileCard}>
-                <h1 className={css.formTitle}>Edit Profile</h1>
+        <Image
+          src={user?.avatar || ""}
+          alt="User Avatar"
+          width={120}
+          height={120}
+          className={css.avatar}
+        />
 
-                <Image
-                    src={user.avatar}
-                    alt="User Avatar"
-                    width={120}
-                    height={120}
-                    className={css.avatar}
-                />
+        <form className={css.profileInfo} action={handleNameChange}>
+          <div className={css.usernameWrapper}>
+            <label htmlFor="username">Username:</label>
+            <input
+              id="username"
+              name="username"
+              type="text"
+              className={css.input}
+              defaultValue={user?.username}
+            />
+          </div>
 
-                <form className={css.profileInfo}>
-                    <div className={css.usernameWrapper}>
-                        <label htmlFor="username">Username:</label>
-                        <input
-                            id="username"
-                            name="username"
-                            type="text"
-                            className={css.input}
-                            value={username}
-                            onChange={(event) => setUsername(event.target.value)}
-                        />
-                    </div>
+          <p>Email: {user?.email}</p>
 
-                    <p>Email: {user.email}</p>
-
-                    <div className={css.actions}>
-                        <button
-                            type="submit"
-                            className={css.saveButton}
-                            formAction={handleSubmit}
-                            disabled={updateProfileMutation.isPending}
-                        >
-                            Save
-                        </button>
-                        <button
-                            type="button"
-                            className={css.cancelButton}
-                            onClick={() => router.push('/profile')}
-                        >
-                            Cancel
-                        </button>
-                    </div>
-                    <p>{error}</p>
-                </form>
-            </div>
-        </main>
-    )
+          <div className={css.actions}>
+            <button type="submit" className={css.saveButton}>
+              Save
+            </button>
+            <button
+              type="button"
+              className={css.cancelButton}
+              onClick={handleCancel}
+            >
+              Cancel
+            </button>
+          </div>
+          {error && <p className={css.error}>{error}</p>}
+        </form>
+      </div>
+    </main>
+  );
 }

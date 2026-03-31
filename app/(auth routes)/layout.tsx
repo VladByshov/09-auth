@@ -4,19 +4,19 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 type Props = {
-    children: React.ReactNode;
+  children: React.ReactNode;
 };
 
 export default function PublicLayout({ children }: Props) {
-    const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
 
-    const router = useRouter();
+  const router = useRouter();
 
-    useEffect(() => {
-        router.refresh();
-        const setFalse = () => setLoading(false);
-        setFalse();
-    }, [router]);
+  useEffect(() => {
+    router.refresh();
+    const setFalse = () => setLoading(false);
+    setFalse();
+  }, [router]);
 
-    return <>{loading ? <div>Loading...</div> : children}</>;
+  return <>{loading ? <div>Loading...</div> : children}</>;
 }

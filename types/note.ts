@@ -1,20 +1,15 @@
-export type NoteTag = "Todo" | "Work" | "Personal" | "Meeting" | "Shopping";
-
 export interface Note {
-    id: string;
-    title: string;
-    content: string;
-    createdAt: string;
-    updatedAt: string;
-    tag: NoteTag;
+  id: string;
+  title: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+  tag: string;
 }
 
-export const noteTags: NoteTag[] = [
-    "Todo",
-    "Work",
-    "Personal",
-    "Meeting",
-    "Shopping",
-];
-
-export type CreateNote = Omit<Note, "id" | "createdAt" | "updatedAt">;
+export interface CreateNoteValues {
+  title: string;
+  content: string;
+  tag: NoteTag;
+}
+export type NoteTag = "Todo" | "Work" | "Personal" | "Meeting" | "Shopping";

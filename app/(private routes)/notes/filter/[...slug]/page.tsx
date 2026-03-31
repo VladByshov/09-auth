@@ -1,61 +1,54 @@
 import {
-    QueryClient,
-    HydrationBoundary,
-    dehydrate,
+  dehydrate,
+  HydrationBoundary,
+  QueryClient,
 } from "@tanstack/react-query";
-import { NoteTag} from "@/types/note";
-import {Metadata} from "next";
-import {fetchNotes} from "@/lib/api/clientApi";
-import NotesClient from "@/app/(private routes)/notes/filter/[...slug]/Notes.client";
+import NotesClient from "./Notes.client";
+import { Metadata } from "next";
+import { fetchNotes } from "@/lib/api/serverApi";
+import { NoteTag } from "@/types/note";
 
-interface SlugProps {
-    params: Promise<{ slug: string[] }>,
-}
+type Props = {
+  params: Promise<{ slug: string[] }>;
+};
 
-export async function generateMetadata({ params }: SlugProps): Promise<Metadata> {
-    const { slug } = await params;
-    const category = slug?.[0] === "all" ? undefined : (slug?.[0] as NoteTag);
-    const title = category ? `NoteHub: ${category}` : "NoteHub: All Notes";
-    const description = category
-        ? `Browse ${category.toLowerCase()} notes in NoteHub.`
-        : "Browse all notes in NoteHub.";
-    return {
-        title,
-        description,
-        openGraph: {
-            title,
-            description,
-            url: category
-                ? `https://08-zustand-opal-ten.vercel.app/notes/filter/${category}`
-                : "https://08-zustand-opal-ten.vercel.app/notes/filter/all",
-            siteName: "NoteHub",
-            images: [
-                {
-                    url: "https://ac.goit.global/fullstack/react/notehub-og-meta.jpg",
-                    width: 1200,
-                    height: 630,
-                    alt: "NoteHub app",
-                },
-            ],
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params;
+  const category = slug[0] === "all" ? "all" : slug[0];
+  return {
+    title: `NoteHub: ${category}`,
+    description: `NoteHub filtred by category: ${category}`,
+    openGraph: {
+      title: `NoteHub: ${category}`,
+      description: `NoteHub filtred by category: ${category}`,
+      url: `https://notehub.com/notes/filter/${category}`,
+      images: [
+        {
+          url: "https://ac.goit.global/fullstack/react/notehub-og-meta.jpg",
+          width: 1200,
+          height: 630,
+          alt: "NoteHub",
         },
-    };
+      ],
+    },
+  };
 }
 
+export default async function NotePage({ params }: Props) {
+  const { slug } = await params;
+  const category = (slug[0] === "all" ? undefined : slug[0]) as
+    | NoteTag
+    | undefined;
+  const queryClient = new QueryClient();
 
-export default async function NotesPage({params}:SlugProps) {
-    const queryClient = new QueryClient();
+  await queryClient.prefetchQuery({
+    queryKey: ["notes", 1, "", category ?? ""],
+    queryFn: () => fetchNotes("", 1, category ?? ""),
+  });
 
-    const {slug} = await params;
-    const chosenTag = (slug[0] === "all" ? undefined : slug[0]) as NoteTag | undefined;
-
-    await queryClient.prefetchQuery({
-        queryKey: ["notes", 1, "", chosenTag],
-        queryFn: () => fetchNotes("", 1, chosenTag ?? ""),
-    });
-
-    return (
-        <HydrationBoundary state={dehydrate(queryClient)}>
-            <NotesClient tag={chosenTag} />
-        </HydrationBoundary>
-    );
+  return (
+    <HydrationBoundary state={dehydrate(queryClient)}>
+      <NotesClient tag={category} />
+    </HydrationBoundary>
+  );
 }

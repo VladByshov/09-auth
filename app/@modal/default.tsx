@@ -1,4 +1,3 @@
-export default function Default(){
-    return null;
+export default function NoteModal() {
+  return null;
 }
-

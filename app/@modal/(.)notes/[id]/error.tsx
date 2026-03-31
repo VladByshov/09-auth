@@ -1,10 +1,9 @@
 "use client";
 
 type Props = {
-    error: Error;
-    reset: ()=>void;
+  error: Error;
 };
 
 export default function Error({ error }: Props) {
-    return <p>Could not open modal window {error.message}</p>;
+  return <p>Could not fetch note details. {error.message}</p>;
 }

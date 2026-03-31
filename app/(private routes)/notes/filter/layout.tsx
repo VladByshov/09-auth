@@ -1,14 +1,16 @@
-import css from "./LayoutNotes.module.css"
-import React from "react";
+    import css from "./LayoutNotes.module.css";
 
-export default function LayoutNotes ({children,sidebar}: Readonly<{
-    children: React.ReactNode;
-    sidebar: React.ReactNode;
+export default function RootLayout({
+  children,
+  sidebar,
+}: Readonly<{
+  children: React.ReactNode;
+  sidebar: React.ReactNode;
 }>) {
-    return (
-        <div className={css.container}>
-            <aside className={css.sidebar}>{sidebar}</aside>
-            <div className={css.notesWrapper}>{children}</div>
-        </div>
-    )
+  return (
+    <div className={css.container}>
+      <aside className={css.sidebar}>{sidebar}</aside>
+      <div className={css.notesWrapper}>{children}</div>
+    </div>
+  );
 }
