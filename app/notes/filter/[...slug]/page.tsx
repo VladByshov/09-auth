@@ -3,7 +3,7 @@ import {
     HydrationBoundary,
     dehydrate,
 } from "@tanstack/react-query";
-import { fetchNotes} from "@/lib/api";
+import { fetchNotes} from "@/lib/api/api";
 import NotesClient from "@/app/notes/filter/[...slug]/Notes.client";
 import { NoteTag} from "@/types/note";
 import {Metadata} from "next";
